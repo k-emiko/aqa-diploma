@@ -16,3 +16,8 @@ services:
     image: gate-simulator
     ports:
       - '9999:9999'
+  aqa-shop:
+    build: ./app
+    image: aqa-shop
+    ports:
+      - '8080:8080'
