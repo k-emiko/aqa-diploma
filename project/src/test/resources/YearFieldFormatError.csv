@@ -1,0 +1,7 @@
+test|input
+Year (one digit)|1
+Year (negative)|-1
+Year (alpha)|abc
+Year (punctuation)|!.('),?
+Year (special)|€Δ®ξ
+Year (spaces)|       

@@ -1,0 +1,7 @@
+test|input
+Card (1 digit)|1
+Card (15 digits)|444444444444444
+Card (alpha)|abc
+Card (spaces)|      
+Card (punctuation)|!.('),?
+Card (special)|€Δ®ξ

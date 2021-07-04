@@ -1,0 +1,7 @@
+test|input
+CVC (one digit)|1
+CVC (alpha)|abc
+CVC (punctuation)|!.('),?
+CVC (special)|€Δ®ξ
+CVC (negative)|-1
+CVC (spaces)|       

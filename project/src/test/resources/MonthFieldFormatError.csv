@@ -1,0 +1,6 @@
+test|input
+Month (negative)|-1
+Month (alpha)|abc
+Month (punctuation)|!.('),?
+Month (special)|€Δ®ξ
+Month (spaces)|       
