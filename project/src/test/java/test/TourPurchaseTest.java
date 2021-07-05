@@ -55,7 +55,8 @@ public class TourPurchaseTest {
                         "jdbc:mysql://" + dbUrl, "app", "pass")
         ) {
             runner.execute(conn, "use app;");
-            result = runner.query(conn, "SELECT COUNT(" + column + ") FROM " + table + ";", new ScalarHandler<>());
+            result = runner.query(conn, "SELECT COUNT(?) FROM ?;", new ScalarHandler<>(), column, table);//this line cases SQL syntax error
+            //result = runner.query(conn, "SELECT COUNT(" + column + ") FROM " + table + ";", new ScalarHandler<>());//working line
         }//todo figure out why the ? thing doesn't work
         return result;
     }
