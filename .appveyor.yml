@@ -2,9 +2,6 @@ image: Ubuntu  # образ для сборки
 
 stack: jdk 11  # версия JDK
 
-services:
-  - docker
-
 build: off  # будем использовать свой скрипт сборки
 
 install:
