@@ -12,7 +12,7 @@ install:
   - sudo chmod +x /usr/local/bin/docker-compose
   - sudo ln -s /usr/local/bin/docker-compose ./artifacts/docker-compose
   - cd ./artifacts/
-  - docker-compose up --build
+  - docker-compose up --build -d
   - sleep 20
 
   # запускаем SUT (& означает, что в фоновом режиме - не блокируем терминал для запуска тестов)
