@@ -11,8 +11,8 @@ install:
   - sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
   - sudo chmod +x /usr/local/bin/docker-compose
   - sudo ln -s /usr/local/bin/docker-compose ./artifacts/docker-compose
-  - ls
-  - ./artifacts/docker-compose up
+  - cd ./artifacts/
+  - docker-compose up --build
   - sleep 20
 
   # запускаем SUT (& означает, что в фоновом режиме - не блокируем терминал для запуска тестов)
