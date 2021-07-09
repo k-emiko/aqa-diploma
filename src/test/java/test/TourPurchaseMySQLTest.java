@@ -14,7 +14,7 @@ import java.sql.SQLException;
 import static com.codeborne.selenide.Selenide.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TourPurchaseTest {
+public class TourPurchaseMySQLTest {
     public static GeneralPageElements mainPage;
     public static CardInfoForm cardInfo;
     public static String appUrl = "localhost:8080";
@@ -53,8 +53,8 @@ public class TourPurchaseTest {
                         "jdbc:mysql://" + dbUrl, "app", "pass")
         ) {
             runner.execute(conn, "use app;");
-            result = runner.query(conn, "SELECT COUNT(?) FROM ?;", new ScalarHandler<>(), column, table);//this line cases SQL syntax error
-            //result = runner.query(conn, "SELECT COUNT(" + column + ") FROM " + table + ";", new ScalarHandler<>());//working line
+            //result = runner.query(conn, "SELECT COUNT(?) FROM ?;", new ScalarHandler<>(), column, table);//this line cases SQL syntax error
+            result = runner.query(conn, "SELECT COUNT(" + column + ") FROM " + table + ";", new ScalarHandler<>());//working line
         }//todo figure out why the ? thing doesn't work
         return result;
     }
