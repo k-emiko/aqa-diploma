@@ -5,6 +5,7 @@ import lombok.val;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.ScalarHandler;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.containers.GenericContainer;
@@ -18,8 +19,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import static com.codeborne.selenide.Selenide.*;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TourPurchaseMySQLTest {
     public static GeneralPageElements mainPage;
@@ -33,20 +34,21 @@ public class TourPurchaseMySQLTest {
     public static final String approved = "APPROVED";
     public static final String declined = "DECLINED";
 
-    @ClassRule
+    @Rule
     public static GenericContainer appContMYSQL =
             new GenericContainer(new ImageFromDockerfile("app-mysql")
                     .withDockerfile(Paths.get("artifacts/app-mysql/Dockerfile")))
-                    .withEnv("DB_USER", "app")
-                    .withEnv("DB_PASS", "pass");
-
+                    .withEnv("TESTCONTAINERS_DB_USER", "app")
+                    .withEnv("TESTCONTAINERS_DB_PASS", "pass")
+                    .withExposedPorts(8080);
+    @Rule
     public static GenericContainer appContPSQL =
             new GenericContainer(new ImageFromDockerfile("app-psql")
                     .withDockerfile(Paths.get("artifacts/app-psql/Dockerfile")))
-                    .withEnv("POSTGRES_USER", "app")
-                    .withEnv("POSTGRES_PASSWORD", "pass")
+                    .withEnv("TESTCONTAINERS_POSTGRES_USER", "app")
+                    .withEnv("TESTCONTAINERS_POSTGRES_PASSWORD", "pass")
                     .withExposedPorts(8080);
-
+    @Rule
     public static GenericContainer paymentSimulator =
             new GenericContainer(new ImageFromDockerfile("payment-simulator")
                     .withDockerfile(Paths.get("artifacts/gate-simulator/Dockerfile")))
@@ -72,7 +74,7 @@ public class TourPurchaseMySQLTest {
                 runner.execute(conn, "use app;");
             }
             else if (dbUrl.contains("postgresql")) {
-                runner.execute(conn, "\\c app;");
+                runner.execute(conn, "\\C app;");
                 runner.execute(conn, "pass");
             }
 
@@ -93,7 +95,7 @@ public class TourPurchaseMySQLTest {
                 runner.execute(conn, "use app;");
             }
             else if (dbUrl.contains("postgresql")) {
-                runner.execute(conn, "\\c app;");
+                runner.execute(conn, "\\C app;");
                 runner.execute(conn, "pass");
             }
             result = runner.query(conn,
@@ -118,7 +120,7 @@ public class TourPurchaseMySQLTest {
                 runner.execute(conn, "use app;");
             }
             else if (dbUrl.contains("postgresql")) {
-                runner.execute(conn, "\\c app;");
+                runner.execute(conn, "\\C app;");
                 runner.execute(conn, "pass");
             }
             result = runner.query(conn,
@@ -133,7 +135,7 @@ public class TourPurchaseMySQLTest {
     @DisplayName("Happy Path")
     @ExtendWith(DatabaseInvocationContextProvider.class)
     public static class Happy {
-        @BeforeAll
+//        @BeforeAll
         static void headless() {
             Configuration.headless = true;
         }
@@ -151,25 +153,39 @@ public class TourPurchaseMySQLTest {
             if (dbUrl.contains("?")) {
                 dbUrl = database.getJdbcUrl().substring(0, database.getJdbcUrl().indexOf("?"));
             }
-            assertNotNull(database.isRunning());
-            paymentSimulator.start();
-            assertNotNull(paymentSimulator.isRunning());
+            assertTrue(database.isRunning());
+            paymentSimulator
+                    .withNetwork(database.getNetwork())
+                    .start();
+
+
+
+            //todo try wait-for-it to find the paymentSim's address
+
+
+
+            assertTrue(paymentSimulator.isRunning());
             if (dbUrl.contains("mysql")) {
                 appContMYSQL
-                        .withEnv("DB_URL", dbUrl)
+                        .withEnv("TESTCONTAINERS_DB_URL", dbUrl)
+                        .withCommand("./wait-for-it.sh --timeout=10 mysql:3306 -- java -jar aqa-shop.jar")
+                        .withNetwork(database.getNetwork())
                         .start();
                 appUrl = appContMYSQL.getHost() + ":" + appContMYSQL.getMappedPort(8080);
-                assertNotNull(appContMYSQL.isRunning());
+                assertTrue(appContMYSQL.isRunning());
             }
             else if (dbUrl.contains("postgresql")) {
                 appContPSQL
-                        .withEnv("POSTGRES_DB", dbUrl)
+                        .withEnv("TESTCONTAINERS_DB_URL", dbUrl)
+                        .withCommand("./wait-for-it.sh --timeout=10 psql:5432 -- java -jar aqa-shop.jar")
+                        .withNetwork(database.getNetwork())
+                        .withNetworkAliases("app")
                         .start();
                 appUrl = appContPSQL.getHost() + ":" + appContPSQL.getMappedPort(8080);
-                assertNotNull(appContPSQL.isRunning());
+                assertTrue(appContPSQL.isRunning());
             }
 
-            open(appUrl);
+            open("http://" + appUrl);
             mainPage = new GeneralPageElements();
 
             long initialPaymentCount = countLinesInDB("status", paymentTable);

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.TestTemplateInvocationContext;
 import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.util.HashMap;
@@ -25,17 +26,24 @@ import static java.util.Arrays.asList;
 public class DatabaseInvocationContextProvider implements TestTemplateInvocationContextProvider{
 
     private final Map<String, JdbcDatabaseContainer> containers;
+    public static Network network = Network.newNetwork();
 
     public DatabaseInvocationContextProvider() {
         containers = new HashMap<>();
         containers.put("mysql", (MySQLContainer) new MySQLContainer("mysql:8.0.25")
                 .withDatabaseName("app")
                 .withUsername("app")
-                .withPassword("pass"));
-        containers.put("postgresql", new PostgreSQLContainer("postgres:latest")
-                .withDatabaseName("app")
-                .withUsername("app")
-                .withPassword("pass"));
+                .withPassword("pass")
+                .withNetwork(network)
+                .withNetworkAliases("mysql")
+                .withExposedPorts(3306));
+//        containers.put("postgresql", (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest")
+//                .withDatabaseName("app")
+//                .withUsername("app")
+//                .withPassword("pass")
+//                .withNetwork(network)
+//                .withNetworkAliases("psql")
+//                .withExposedPorts(5432));
 
     }
 

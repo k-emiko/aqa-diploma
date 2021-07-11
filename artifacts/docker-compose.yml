@@ -23,7 +23,7 @@ services:
     ports:
       - '9999:9999'
   aqa-shop:
-    build: ./app
+    build: ./app-mysql
     image: aqa-shop
     ports:
       - '8080:8080'
