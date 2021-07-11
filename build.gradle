@@ -27,10 +27,14 @@ dependencies {
 
     testImplementation 'com.codeborne:selenide:5.19.0'
     testImplementation 'com.github.javafaker:javafaker:1.0.1'
+
     testImplementation 'commons-dbutils:commons-dbutils:1.7'
     testImplementation 'mysql:mysql-connector-java:8.0.22'
     testImplementation 'org.postgresql:postgresql:42.2.23'
 
+    testImplementation 'org.testcontainers:testcontainers:1.15.3'
+    testImplementation 'org.testcontainers:postgresql:1.15.3'
+    testImplementation 'org.testcontainers:mysql:1.15.3'
 
     testImplementation 'io.qameta.allure:allure-selenide:2.13.6'
 

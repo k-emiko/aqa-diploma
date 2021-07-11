@@ -4,37 +4,53 @@ import com.codeborne.selenide.Configuration;
 import lombok.val;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.ScalarHandler;
+import org.junit.ClassRule;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.JdbcDatabaseContainer;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 import page.CardInfoForm;
 import page.GeneralPageElements;
 
+import java.nio.file.Paths;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import static com.codeborne.selenide.Selenide.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TourPurchaseMySQLTest {
     public static GeneralPageElements mainPage;
     public static CardInfoForm cardInfo;
-    public static String appUrl = "localhost:8080";
-    public static String dbUrl = "localhost:3306";
-    public static String linesInDB = "SELECT COUNT(?) FROM ?;";
-    public static String paymentStatus = "SELECT status FROM payment_entity " +
-            "WHERE transaction_id=" +
-            "(SELECT payment_id FROM order_entity " +
-            "WHERE created=" +
-            "(select max(created) FROM order_entity));";
-
-    public static String creditStatus = "SELECT status FROM credit_request_entity " +
-            "WHERE created=" +
-            "(SELECT max(created) FROM credit_request_entity);";
+    public static String appUrl;
+    public static String dbUrl;
 
     public static String paymentTable = "payment_entity";
     public static String creditTable = "credit_request_entity";
     public static String orderTable = "order_entity";
     public static final String approved = "APPROVED";
     public static final String declined = "DECLINED";
+
+    @ClassRule
+    public static GenericContainer appContMYSQL =
+            new GenericContainer(new ImageFromDockerfile("app-mysql")
+                    .withDockerfile(Paths.get("artifacts/app-mysql/Dockerfile")))
+                    .withEnv("DB_USER", "app")
+                    .withEnv("DB_PASS", "pass");
+
+    public static GenericContainer appContPSQL =
+            new GenericContainer(new ImageFromDockerfile("app-psql")
+                    .withDockerfile(Paths.get("artifacts/app-psql/Dockerfile")))
+                    .withEnv("POSTGRES_USER", "app")
+                    .withEnv("POSTGRES_PASSWORD", "pass")
+                    .withExposedPorts(8080);
+
+    public static GenericContainer paymentSimulator =
+            new GenericContainer(new ImageFromDockerfile("payment-simulator")
+                    .withDockerfile(Paths.get("artifacts/gate-simulator/Dockerfile")))
+                    .withExposedPorts(9999);
 
     //todo field warnings do not clear after input has been corrected
     private static void inputValidInfo(boolean approved) {
@@ -50,9 +66,16 @@ public class TourPurchaseMySQLTest {
         long result;
         try (
                 val conn = DriverManager.getConnection(
-                        "jdbc:mysql://" + dbUrl, "app", "pass")
+                        dbUrl, "app", "pass")
         ) {
-            runner.execute(conn, "use app;");
+            if (dbUrl.contains("mysql")) {
+                runner.execute(conn, "use app;");
+            }
+            else if (dbUrl.contains("postgresql")) {
+                runner.execute(conn, "\\c app;");
+                runner.execute(conn, "pass");
+            }
+
             //result = runner.query(conn, "SELECT COUNT(?) FROM ?;", new ScalarHandler<>(), column, table);//this line cases SQL syntax error
             result = runner.query(conn, "SELECT COUNT(" + column + ") FROM " + table + ";", new ScalarHandler<>());//working line
         }//todo figure out why the ? thing doesn't work
@@ -64,9 +87,15 @@ public class TourPurchaseMySQLTest {
         String result;
         try (
                 val conn = DriverManager.getConnection(
-                        "jdbc:mysql://" + dbUrl, "app", "pass")
+                        dbUrl, "app", "pass")
         ) {
-            runner.execute(conn, "use app;");
+            if (dbUrl.contains("mysql")) {
+                runner.execute(conn, "use app;");
+            }
+            else if (dbUrl.contains("postgresql")) {
+                runner.execute(conn, "\\c app;");
+                runner.execute(conn, "pass");
+            }
             result = runner.query(conn,
                     "select status from payment_entity " +
                             "where transaction_id=" +
@@ -83,9 +112,15 @@ public class TourPurchaseMySQLTest {
         String result;
         try (
                 val conn = DriverManager.getConnection(
-                        "jdbc:mysql://" + dbUrl, "app", "pass")
+                        dbUrl, "app", "pass")
         ) {
-            runner.execute(conn, "use app;");
+            if (dbUrl.contains("mysql")) {
+                runner.execute(conn, "use app;");
+            }
+            else if (dbUrl.contains("postgresql")) {
+                runner.execute(conn, "\\c app;");
+                runner.execute(conn, "pass");
+            }
             result = runner.query(conn,
                     "select status from credit_request_entity " +
                             "where created=" +
@@ -96,6 +131,7 @@ public class TourPurchaseMySQLTest {
     }
 
     @DisplayName("Happy Path")
+    @ExtendWith(DatabaseInvocationContextProvider.class)
     public static class Happy {
         @BeforeAll
         static void headless() {
@@ -104,13 +140,38 @@ public class TourPurchaseMySQLTest {
 
         @BeforeEach
         public void setUp(){
-            open("http://" + appUrl);
-            mainPage = new GeneralPageElements();
+//            open("http://" + appUrl);
+//            mainPage = new GeneralPageElements();
         }
 
-        @Test
-        void debitApproved() throws SQLException {
+        @TestTemplate
+        void debitApproved(JdbcDatabaseContainer database) throws SQLException {
             //get numbers of entries in relevant tables
+            dbUrl = database.getJdbcUrl();
+            if (dbUrl.contains("?")) {
+                dbUrl = database.getJdbcUrl().substring(0, database.getJdbcUrl().indexOf("?"));
+            }
+            assertNotNull(database.isRunning());
+            paymentSimulator.start();
+            assertNotNull(paymentSimulator.isRunning());
+            if (dbUrl.contains("mysql")) {
+                appContMYSQL
+                        .withEnv("DB_URL", dbUrl)
+                        .start();
+                appUrl = appContMYSQL.getHost() + ":" + appContMYSQL.getMappedPort(8080);
+                assertNotNull(appContMYSQL.isRunning());
+            }
+            else if (dbUrl.contains("postgresql")) {
+                appContPSQL
+                        .withEnv("POSTGRES_DB", dbUrl)
+                        .start();
+                appUrl = appContPSQL.getHost() + ":" + appContPSQL.getMappedPort(8080);
+                assertNotNull(appContPSQL.isRunning());
+            }
+
+            open(appUrl);
+            mainPage = new GeneralPageElements();
+
             long initialPaymentCount = countLinesInDB("status", paymentTable);
             long initialDebitCount = countLinesInDB("payment_id", orderTable);
 
