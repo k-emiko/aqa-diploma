@@ -37,13 +37,13 @@ public class DatabaseInvocationContextProvider implements TestTemplateInvocation
                 .withNetwork(network)
                 .withNetworkAliases("mysql")
                 .withExposedPorts(3306));
-//        containers.put("postgresql", (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest")
-//                .withDatabaseName("app")
-//                .withUsername("app")
-//                .withPassword("pass")
-//                .withNetwork(network)
-//                .withNetworkAliases("psql")
-//                .withExposedPorts(5432));
+        containers.put("postgresql", (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest")
+                .withDatabaseName("app")
+                .withUsername("app")
+                .withPassword("pass")
+                .withNetwork(network)
+                .withNetworkAliases("psql")
+                .withExposedPorts(5432));
 
     }
 

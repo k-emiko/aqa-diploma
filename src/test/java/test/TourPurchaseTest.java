@@ -4,7 +4,6 @@ import com.codeborne.selenide.Configuration;
 import lombok.val;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.ScalarHandler;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,10 +18,11 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import static com.codeborne.selenide.Selenide.*;
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TourPurchaseMySQLTest {
+@DisplayName("Happy Path")
+@ExtendWith(DatabaseInvocationContextProvider.class)
+public class TourPurchaseTest {
     public static GeneralPageElements mainPage;
     public static CardInfoForm cardInfo;
     public static String appUrl;
@@ -55,116 +55,22 @@ public class TourPurchaseMySQLTest {
                     .withExposedPorts(9999);
 
     //todo field warnings do not clear after input has been corrected
-    private static void inputValidInfo(boolean approved) {
-        mainPage = cardInfo.inputNumber(approved)
-                .inputValidDate()
-                .inputValidName("en")
-                .inputValidCvc()
-                .clickContinue();
-    }
 
-    private static long countLinesInDB(String column, String table) throws SQLException {
-        QueryRunner runner = new QueryRunner();
-        long result;
-        try (
-                val conn = DriverManager.getConnection(
-                        dbUrl, "app", "pass")
-        ) {
-            if (dbUrl.contains("mysql")) {
-                runner.execute(conn, "use app;");
-            }
-            else if (dbUrl.contains("postgresql")) {
-                runner.execute(conn, "\\C app;");
-                runner.execute(conn, "pass");
-            }
-
-            //result = runner.query(conn, "SELECT COUNT(?) FROM ?;", new ScalarHandler<>(), column, table);//this line cases SQL syntax error
-            result = runner.query(conn, "SELECT COUNT(" + column + ") FROM " + table + ";", new ScalarHandler<>());//working line
-        }//todo figure out why the ? thing doesn't work
-        return result;
-    }
-
-    private static String seePaymentStatus() throws SQLException {
-        QueryRunner runner = new QueryRunner();
-        String result;
-        try (
-                val conn = DriverManager.getConnection(
-                        dbUrl, "app", "pass")
-        ) {
-            if (dbUrl.contains("mysql")) {
-                runner.execute(conn, "use app;");
-            }
-            else if (dbUrl.contains("postgresql")) {
-                runner.execute(conn, "\\C app;");
-                runner.execute(conn, "pass");
-            }
-            result = runner.query(conn,
-                    "select status from payment_entity " +
-                            "where transaction_id=" +
-                                "(select payment_id from order_entity " +
-                                    "where created=" +
-                                        "(select max(created) from order_entity));",
-                    new ScalarHandler<>());
-        }
-        return result;
-    }
-
-    private static String seeCreditStatus() throws SQLException {
-        QueryRunner runner = new QueryRunner();
-        String result;
-        try (
-                val conn = DriverManager.getConnection(
-                        dbUrl, "app", "pass")
-        ) {
-            if (dbUrl.contains("mysql")) {
-                runner.execute(conn, "use app;");
-            }
-            else if (dbUrl.contains("postgresql")) {
-                runner.execute(conn, "\\C app;");
-                runner.execute(conn, "pass");
-            }
-            result = runner.query(conn,
-                    "select status from credit_request_entity " +
-                            "where created=" +
-                                "(select max(created) from credit_request_entity);",
-                    new ScalarHandler<>());
-        }
-        return result;
-    }
-
-    @DisplayName("Happy Path")
-    @ExtendWith(DatabaseInvocationContextProvider.class)
-    public static class Happy {
-//        @BeforeAll
+        @BeforeAll
         static void headless() {
             Configuration.headless = true;
         }
 
-        @BeforeEach
-        public void setUp(){
-//            open("http://" + appUrl);
-//            mainPage = new GeneralPageElements();
-        }
-
-        @TestTemplate
-        void debitApproved(JdbcDatabaseContainer database) throws SQLException {
-            //get numbers of entries in relevant tables
+        public void setUp(JdbcDatabaseContainer database){
             dbUrl = database.getJdbcUrl();
             if (dbUrl.contains("?")) {
                 dbUrl = database.getJdbcUrl().substring(0, database.getJdbcUrl().indexOf("?"));
             }
-            assertTrue(database.isRunning());
+            Assertions.assertTrue(database.isRunning());
             paymentSimulator
                     .withNetwork(database.getNetwork())
+                    .withNetworkAliases("gate-simulator")
                     .start();
-
-
-
-            //todo try wait-for-it to find the paymentSim's address
-
-
-
-            assertTrue(paymentSimulator.isRunning());
             if (dbUrl.contains("mysql")) {
                 appContMYSQL
                         .withEnv("TESTCONTAINERS_DB_URL", dbUrl)
@@ -172,7 +78,7 @@ public class TourPurchaseMySQLTest {
                         .withNetwork(database.getNetwork())
                         .start();
                 appUrl = appContMYSQL.getHost() + ":" + appContMYSQL.getMappedPort(8080);
-                assertTrue(appContMYSQL.isRunning());
+                Assertions.assertTrue(appContMYSQL.isRunning());
             }
             else if (dbUrl.contains("postgresql")) {
                 appContPSQL
@@ -182,12 +88,18 @@ public class TourPurchaseMySQLTest {
                         .withNetworkAliases("app")
                         .start();
                 appUrl = appContPSQL.getHost() + ":" + appContPSQL.getMappedPort(8080);
-                assertTrue(appContPSQL.isRunning());
+                Assertions.assertTrue(appContPSQL.isRunning());
             }
 
             open("http://" + appUrl);
             mainPage = new GeneralPageElements();
+        }
 
+        @TestTemplate
+        @DisplayName("Debit Approved")
+        void debitApproved(JdbcDatabaseContainer database) throws SQLException {
+            setUp(database);
+            //get numbers of entries in relevant tables
             long initialPaymentCount = countLinesInDB("status", paymentTable);
             long initialDebitCount = countLinesInDB("payment_id", orderTable);
 
@@ -203,8 +115,10 @@ public class TourPurchaseMySQLTest {
             assertEquals(approved, seePaymentStatus());
         }
 
-        @Test
-        public void debitDeclined()throws SQLException {
+        @TestTemplate
+        @DisplayName("Debit Declined")
+        public void debitDeclined(JdbcDatabaseContainer database)throws SQLException {
+            setUp(database);
             long initialPaymentCount = countLinesInDB("status", paymentTable);
             long initialDebitCount = countLinesInDB("payment_id", orderTable);
 
@@ -219,8 +133,10 @@ public class TourPurchaseMySQLTest {
             assertEquals(declined, seePaymentStatus());
         }
 
-        @Test
-        public void creditApproved() throws SQLException {
+        @TestTemplate
+        @DisplayName("Credit Approved")
+        public void creditApproved(JdbcDatabaseContainer database) throws SQLException {
+            setUp(database);
             long initialCreditCount = countLinesInDB("id", creditTable);
 
             cardInfo = mainPage.creditTour();
@@ -232,8 +148,10 @@ public class TourPurchaseMySQLTest {
             assertEquals(approved, seeCreditStatus());
         }
 
-        @Test
-        public void creditDeclined() throws SQLException {
+        @TestTemplate
+        @DisplayName("Credit Declined")
+        public void creditDeclined(JdbcDatabaseContainer database) throws SQLException {
+            setUp(database);
             long initialCreditCount = countLinesInDB("id", creditTable);
             cardInfo = mainPage.creditTour();
             inputValidInfo(false);
@@ -244,6 +162,59 @@ public class TourPurchaseMySQLTest {
             assertEquals(declined, seeCreditStatus());
         }
 
+    private static void inputValidInfo(boolean approved) {
+        mainPage = cardInfo.inputNumber(approved)
+                .inputValidDate()
+                .inputValidName("en")
+                .inputValidCvc()
+                .clickContinue();
+    }
+
+    private static long countLinesInDB(String column, String table) throws SQLException {
+        QueryRunner runner = new QueryRunner();
+        long result;
+        try (
+                val conn = DriverManager.getConnection(
+                        dbUrl, "app", "pass")
+        ) {
+            //result = runner.query(conn, "SELECT COUNT(?) FROM ?;", new ScalarHandler<>(), column, table);//this line cases SQL syntax error
+            result = runner.query(conn, "SELECT COUNT(" + column + ") FROM " + table + ";", new ScalarHandler<>());//working line
+        }//todo figure out why the ? thing doesn't work
+        return result;
+    }
+
+    private static String seePaymentStatus() throws SQLException {
+        QueryRunner runner = new QueryRunner();
+        String result;
+        try (
+                val conn = DriverManager.getConnection(
+                        dbUrl, "app", "pass")
+        ) {
+            result = runner.query(conn,
+                    "select status from payment_entity " +
+                            "where transaction_id=" +
+                            "(select payment_id from order_entity " +
+                            "where created=" +
+                            "(select max(created) from order_entity));",
+                    new ScalarHandler<>());
+        }
+        return result;
+    }
+
+    private static String seeCreditStatus() throws SQLException {
+        QueryRunner runner = new QueryRunner();
+        String result;
+        try (
+                val conn = DriverManager.getConnection(
+                        dbUrl, "app", "pass")
+        ) {
+            result = runner.query(conn,
+                    "select status from credit_request_entity " +
+                            "where created=" +
+                            "(select max(created) from credit_request_entity);",
+                    new ScalarHandler<>());
+        }
+        return result;
     }
 
 }
