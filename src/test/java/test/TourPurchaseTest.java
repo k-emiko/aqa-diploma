@@ -18,6 +18,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import static com.codeborne.selenide.Selenide.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DisplayName("Happy Path")
@@ -34,133 +35,147 @@ public class TourPurchaseTest {
     public static final String approved = "APPROVED";
     public static final String declined = "DECLINED";
 
+    private long initialCreditCount;
+    private long initialPaymentCount;
+    private long initialDebitCount;
+    private long actualCreditCount;
+    private long actualPaymentCount;
+    private long actualDebitCount;
+
     @Rule
     public static GenericContainer appContMYSQL =
             new GenericContainer(new ImageFromDockerfile("app-mysql")
-                    .withDockerfile(Paths.get("artifacts/app-mysql/Dockerfile")))
-                    .withEnv("TESTCONTAINERS_DB_USER", "app")
-                    .withEnv("TESTCONTAINERS_DB_PASS", "pass")
-                    .withExposedPorts(8080);
+                    .withDockerfile(Paths.get("artifacts/app-mysql/Dockerfile")));
     @Rule
     public static GenericContainer appContPSQL =
             new GenericContainer(new ImageFromDockerfile("app-psql")
-                    .withDockerfile(Paths.get("artifacts/app-psql/Dockerfile")))
-                    .withEnv("TESTCONTAINERS_POSTGRES_USER", "app")
-                    .withEnv("TESTCONTAINERS_POSTGRES_PASSWORD", "pass")
-                    .withExposedPorts(8080);
+                    .withDockerfile(Paths.get("artifacts/app-psql/Dockerfile")));
     @Rule
     public static GenericContainer paymentSimulator =
             new GenericContainer(new ImageFromDockerfile("payment-simulator")
-                    .withDockerfile(Paths.get("artifacts/gate-simulator/Dockerfile")))
-                    .withExposedPorts(9999);
+                    .withDockerfile(Paths.get("artifacts/gate-simulator/Dockerfile")));
 
     //todo field warnings do not clear after input has been corrected
 
-        @BeforeAll
-        static void headless() {
-            Configuration.headless = true;
-        }
+    @BeforeAll
+    static void headless() {
+        Configuration.headless = true;
+    }
 
-        public void setUp(JdbcDatabaseContainer database){
-            dbUrl = database.getJdbcUrl();
-            if (dbUrl.contains("?")) {
-                dbUrl = database.getJdbcUrl().substring(0, database.getJdbcUrl().indexOf("?"));
-            }
-            Assertions.assertTrue(database.isRunning());
-            paymentSimulator
+
+    @TestTemplate
+    @DisplayName("Debit Approved")
+    void debitApproved(JdbcDatabaseContainer database) throws SQLException {
+        setUp(database);
+        //get numbers of entries in relevant tables
+        initialPaymentCount = countLinesInDB("status", paymentTable);
+        initialDebitCount = countLinesInDB("payment_id", orderTable);
+
+        cardInfo = mainPage.buyTour();
+        inputValidInfo(true);
+
+        mainPage.assertSuccess();
+        //get numbers of entries in relevant bases again to compare with the initial ones
+        actualPaymentCount = countLinesInDB("status", paymentTable);
+        actualDebitCount = countLinesInDB("payment_id", orderTable);
+        assertAll(
+                () -> assertEquals(initialDebitCount + 1, actualDebitCount),
+                () -> assertEquals(initialPaymentCount + 1, actualPaymentCount),
+                () -> assertEquals(approved, seePaymentStatus()));
+    }
+
+    @TestTemplate
+    @DisplayName("Debit Declined")
+    public void debitDeclined(JdbcDatabaseContainer database) throws SQLException {
+        setUp(database);
+        initialPaymentCount = countLinesInDB("status", paymentTable);
+        initialDebitCount = countLinesInDB("payment_id", orderTable);
+
+        cardInfo = mainPage.buyTour();
+        inputValidInfo(false);
+
+        mainPage.assertError();//frontend error; the following asserts pass
+        actualPaymentCount = countLinesInDB("status", paymentTable);
+        actualDebitCount = countLinesInDB("payment_id", orderTable);
+        assertAll(
+                () -> assertEquals(initialDebitCount + 1, actualDebitCount),
+                () -> assertEquals(initialPaymentCount + 1, actualPaymentCount),
+                () -> assertEquals(declined, seePaymentStatus()));
+    }
+
+    @TestTemplate
+    @DisplayName("Credit Approved")
+    public void creditApproved(JdbcDatabaseContainer database) throws SQLException {
+        setUp(database);
+        initialCreditCount = countLinesInDB("id", creditTable);
+
+        cardInfo = mainPage.creditTour();
+        inputValidInfo(true);
+
+        mainPage.assertSuccess();
+        actualCreditCount = countLinesInDB("id", creditTable);
+        assertAll(
+                () -> assertEquals(initialCreditCount + 1, actualCreditCount),
+                () -> assertEquals(approved, seeCreditStatus()));
+    }
+
+    @TestTemplate
+    @DisplayName("Credit Declined")
+    public void creditDeclined(JdbcDatabaseContainer database) throws SQLException {
+        setUp(database);
+        initialCreditCount = countLinesInDB("id", creditTable);
+
+        cardInfo = mainPage.creditTour();
+        inputValidInfo(false);
+        mainPage.assertError(); //frontend error; the following asserts pass
+
+        actualCreditCount = countLinesInDB("id", creditTable);
+        assertAll(
+                () -> assertEquals(initialCreditCount + 1, actualCreditCount),
+                () -> assertEquals(declined, seeCreditStatus()));
+    }
+
+    public void containerSelector(JdbcDatabaseContainer database) {
+        if (dbUrl.contains("mysql")) {
+            appContMYSQL
+                    .withEnv("TESTCONTAINERS_DB_URL", dbUrl)
+                    .withEnv("TESTCONTAINERS_DB_USER", "app")
+                    .withEnv("TESTCONTAINERS_DB_PASS", "pass")
+                    .withCommand("./wait-for-it.sh --timeout=10 mysql:3306 -- java -jar aqa-shop.jar")
+                    .withExposedPorts(8080)
                     .withNetwork(database.getNetwork())
-                    .withNetworkAliases("gate-simulator")
+                    .withNetworkAliases("app")
                     .start();
-            if (dbUrl.contains("mysql")) {
-                appContMYSQL
-                        .withEnv("TESTCONTAINERS_DB_URL", dbUrl)
-                        .withCommand("./wait-for-it.sh --timeout=10 mysql:3306 -- java -jar aqa-shop.jar")
-                        .withNetwork(database.getNetwork())
-                        .start();
-                appUrl = appContMYSQL.getHost() + ":" + appContMYSQL.getMappedPort(8080);
-                Assertions.assertTrue(appContMYSQL.isRunning());
-            }
-            else if (dbUrl.contains("postgresql")) {
-                appContPSQL
-                        .withEnv("TESTCONTAINERS_DB_URL", dbUrl)
-                        .withCommand("./wait-for-it.sh --timeout=10 psql:5432 -- java -jar aqa-shop.jar")
-                        .withNetwork(database.getNetwork())
-                        .withNetworkAliases("app")
-                        .start();
-                appUrl = appContPSQL.getHost() + ":" + appContPSQL.getMappedPort(8080);
-                Assertions.assertTrue(appContPSQL.isRunning());
-            }
-
-            open("http://" + appUrl);
-            mainPage = new GeneralPageElements();
+            appUrl = appContMYSQL.getHost() + ":" + appContMYSQL.getMappedPort(8080);
+        } else if (dbUrl.contains("postgresql")) {
+            appContPSQL
+                    .withEnv("TESTCONTAINERS_DB_URL", dbUrl)
+                    .withEnv("TESTCONTAINERS_POSTGRES_USER", "app")
+                    .withEnv("TESTCONTAINERS_POSTGRES_PASSWORD", "pass")
+                    .withCommand("./wait-for-it.sh --timeout=10 psql:5432 -- java -jar aqa-shop.jar")
+                    .withExposedPorts(8080)
+                    .withNetwork(database.getNetwork())
+                    .withNetworkAliases("app")
+                    .start();
+            appUrl = appContPSQL.getHost() + ":" + appContPSQL.getMappedPort(8080);
         }
+    }
 
-        @TestTemplate
-        @DisplayName("Debit Approved")
-        void debitApproved(JdbcDatabaseContainer database) throws SQLException {
-            setUp(database);
-            //get numbers of entries in relevant tables
-            long initialPaymentCount = countLinesInDB("status", paymentTable);
-            long initialDebitCount = countLinesInDB("payment_id", orderTable);
-
-            cardInfo = mainPage.buyTour();
-            inputValidInfo(true);
-
-            mainPage.assertSuccess();
-            //get numbers of entries in relevant bases again to compare with the initial ones
-            long actualPaymentCount = countLinesInDB("status", paymentTable);
-            long actualDebitCount = countLinesInDB("payment_id", orderTable);
-            assertEquals(initialDebitCount + 1, actualDebitCount);
-            assertEquals(initialPaymentCount + 1, actualPaymentCount);
-            assertEquals(approved, seePaymentStatus());
+    public void setUp(JdbcDatabaseContainer database) {
+        dbUrl = database.getJdbcUrl();
+        if (dbUrl.contains("?")) {
+            dbUrl = database.getJdbcUrl().substring(0, database.getJdbcUrl().indexOf("?"));
         }
+        paymentSimulator
+                .withNetwork(database.getNetwork())
+                .withNetworkAliases("gate-simulator")
+                .withExposedPorts(9999)
+                .start();
+        containerSelector(database);
 
-        @TestTemplate
-        @DisplayName("Debit Declined")
-        public void debitDeclined(JdbcDatabaseContainer database)throws SQLException {
-            setUp(database);
-            long initialPaymentCount = countLinesInDB("status", paymentTable);
-            long initialDebitCount = countLinesInDB("payment_id", orderTable);
-
-            cardInfo = mainPage.buyTour();
-            inputValidInfo(false);
-
-            mainPage.assertError();//frontend error; the following asserts pass
-            long actualPaymentCount = countLinesInDB("status", paymentTable);
-            long actualDebitCount = countLinesInDB("payment_id", orderTable);
-            assertEquals(initialDebitCount + 1, actualDebitCount);
-            assertEquals(initialPaymentCount + 1, actualPaymentCount);
-            assertEquals(declined, seePaymentStatus());
-        }
-
-        @TestTemplate
-        @DisplayName("Credit Approved")
-        public void creditApproved(JdbcDatabaseContainer database) throws SQLException {
-            setUp(database);
-            long initialCreditCount = countLinesInDB("id", creditTable);
-
-            cardInfo = mainPage.creditTour();
-            inputValidInfo(true);
-
-            mainPage.assertSuccess();
-            long actualCreditCount = countLinesInDB("id", creditTable);
-            assertEquals(initialCreditCount + 1, actualCreditCount);
-            assertEquals(approved, seeCreditStatus());
-        }
-
-        @TestTemplate
-        @DisplayName("Credit Declined")
-        public void creditDeclined(JdbcDatabaseContainer database) throws SQLException {
-            setUp(database);
-            long initialCreditCount = countLinesInDB("id", creditTable);
-            cardInfo = mainPage.creditTour();
-            inputValidInfo(false);
-
-            mainPage.assertError(); //frontend error; the following asserts pass
-            long actualCreditCount = countLinesInDB("id", creditTable);
-            assertEquals(initialCreditCount + 1, actualCreditCount);
-            assertEquals(declined, seeCreditStatus());
-        }
+        open("http://" + appUrl);
+        mainPage = new GeneralPageElements();
+    }
 
     private static void inputValidInfo(boolean approved) {
         mainPage = cardInfo.inputNumber(approved)
