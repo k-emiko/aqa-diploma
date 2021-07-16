@@ -3,14 +3,15 @@ package page;
 import com.codeborne.selenide.SelenideElement;
 import data.CardDataGenerator;
 
-import java.util.*;
+import java.util.Calendar;
+import java.util.List;
 
 import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
 
-public class CardInfoForm {
+public class CardInfoForm {//$(".input__control[placeholder='']");
     List<SelenideElement> fields = $$(".input__control");
     SelenideElement cardNumberField = fields.get(0);
     SelenideElement monthField = fields.get(1);
@@ -19,6 +20,7 @@ public class CardInfoForm {
     SelenideElement cvcField = fields.get(4);
     SelenideElement continueButton = $$(".button").get(2);
     SelenideElement heading = $(".heading");
+
     static SelenideElement fieldError = $(".input__sub");
     CardDataGenerator dataGen = new CardDataGenerator();
     String approvedCardNumber = "4444444444444441";
@@ -51,11 +53,18 @@ public class CardInfoForm {
         fieldError.shouldHave(text("Поле обязательно для заполнения"));
     }
 
+    public static GeneralPageElements inputValidInfo(boolean approved, CardInfoForm cardInfo) {
+        return cardInfo.inputNumber(approved)
+                .inputValidDate()
+                .inputValidName("en")
+                .inputValidCvc()
+                .clickContinue();
+    }
+
     public CardInfoForm inputNumber(boolean approved) {
         if (approved) {
             cardNumberField.setValue(approvedCardNumber);
-        }
-        else {
+        } else {
             cardNumberField.setValue(declinedCardNumber);
         }
         return this;
@@ -71,8 +80,7 @@ public class CardInfoForm {
         String month;
         if (year == currentYear) {
             month = CardDataGenerator.DateGenerator.RandomValidMonth(currentMonth);
-        }
-        else {
+        } else {
             month = CardDataGenerator.DateGenerator.RandomValidMonth(1);
         }
         inputMonth(month);
@@ -145,8 +153,7 @@ public class CardInfoForm {
     public String monthHelper(int month) {
         if (month < 10) {
             return "0" + month;
-        }
-        else {
+        } else {
             return String.valueOf(month);
         }
     }
