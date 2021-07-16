@@ -13,7 +13,7 @@ public class CardInfoForm {
     SelenideElement cardNumberField = $(".input__control[placeholder='0000 0000 0000 0000']");
     SelenideElement monthField = $(".input__control[placeholder='08']");
     SelenideElement yearField = $(".input__control[placeholder='22']");
-    SelenideElement nameField = $x("//span[text()='Владелец']/../../span[@class='input__inner']/span[@class='input__box']/input"); // todo reference the .input__control bit!
+    SelenideElement nameField = $x("//span[text()='Владелец']/../../span[@class='input__inner']/span[@class='input__box']/input");
     SelenideElement cvcField = $(".input__control[placeholder='999']");
     SelenideElement continueButton = $x("//button/span/span[text()='Продолжить']");
     SelenideElement heading = $(".heading");
