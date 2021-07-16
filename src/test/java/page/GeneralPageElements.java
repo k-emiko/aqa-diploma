@@ -6,12 +6,11 @@ import java.time.Duration;
 
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
-import static com.codeborne.selenide.Selenide.$$;
+import static com.codeborne.selenide.Selenide.$x;
 
 public class GeneralPageElements {
-    //todo add difference with text inside: Купить/Купить в кредит //$x("//span[text()='']");
-    SelenideElement buttonBuy = $$(".button").get(0);
-    SelenideElement buttonCredit = $$(".button").get(1);
+    SelenideElement buttonBuy = $x("//button/span/span[text()='Купить']");
+    SelenideElement buttonCredit = $x("//button/span/span[text()='Купить в кредит']");
     SelenideElement successNotification = $(".notification_status_ok");
     SelenideElement declinedNotification = $(".notification_status_error");
 

@@ -4,21 +4,18 @@ import com.codeborne.selenide.SelenideElement;
 import data.CardDataGenerator;
 
 import java.util.Calendar;
-import java.util.List;
 
 import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Condition.visible;
-import static com.codeborne.selenide.Selenide.$;
-import static com.codeborne.selenide.Selenide.$$;
+import static com.codeborne.selenide.Selenide.*;
 
-public class CardInfoForm {//$(".input__control[placeholder='']");
-    List<SelenideElement> fields = $$(".input__control");
-    SelenideElement cardNumberField = fields.get(0);
-    SelenideElement monthField = fields.get(1);
-    SelenideElement yearField = fields.get(2);
-    SelenideElement nameField = fields.get(3);
-    SelenideElement cvcField = fields.get(4);
-    SelenideElement continueButton = $$(".button").get(2);
+public class CardInfoForm {
+    SelenideElement cardNumberField = $(".input__control[placeholder='0000 0000 0000 0000']");
+    SelenideElement monthField = $(".input__control[placeholder='08']");
+    SelenideElement yearField = $(".input__control[placeholder='22']");
+    SelenideElement nameField = $x("//span[text()='Владелец']/../../span[@class='input__inner']/span[@class='input__box']/input"); // todo reference the .input__control bit!
+    SelenideElement cvcField = $(".input__control[placeholder='999']");
+    SelenideElement continueButton = $x("//button/span/span[text()='Продолжить']");
     SelenideElement heading = $(".heading");
 
     static SelenideElement fieldError = $(".input__sub");
@@ -174,26 +171,6 @@ public class CardInfoForm {//$(".input__control[placeholder='']");
         String month = monthHelper(currentMonth + 1);
         monthField.setValue(month);
         return this;
-    }
-
-    public String getNumber() {
-        return cardNumberField.getValue();
-    }
-
-    public String getMonth() {
-        return monthField.getValue();
-    }
-
-    public String getYear() {
-        return yearField.getValue();
-    }
-
-    public String getName() {
-        return nameField.getValue();
-    }
-
-    public String getCvc() {
-        return cvcField.getValue();
     }
 
 }
