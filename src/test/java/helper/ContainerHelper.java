@@ -29,6 +29,8 @@ public class ContainerHelper {
 
     public static String setUp(JdbcDatabaseContainer database) {
         dbUrl = database.getJdbcUrl();
+        System.out.println("DEBUG: " + dbUrl);
+
         if (dbUrl.contains("?")) {
             dbUrl = database.getJdbcUrl().substring(0, database.getJdbcUrl().indexOf("?"));
         }
@@ -37,6 +39,8 @@ public class ContainerHelper {
                 .withNetworkAliases("gate-simulator")
                 .withExposedPorts(9999)
                 .start();
+        System.out.println("DEBUG: " + paymentSimulator.getHost() + ":" + paymentSimulator.getMappedPort(9999));
+
         return containerSelector(database);
     }
 
@@ -65,6 +69,7 @@ public class ContainerHelper {
                     .start();
             appUrl = appContPSQL.getHost() + ":" + appContPSQL.getMappedPort(8080);
         }
+        System.out.println(appUrl);
         return appUrl;
     }
 
