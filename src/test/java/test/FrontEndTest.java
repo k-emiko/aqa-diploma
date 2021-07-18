@@ -376,7 +376,7 @@ public class FrontEndTest {
                 .withEnv("TESTCONTAINERS_DB_USER", "app")
                 .withEnv("TESTCONTAINERS_DB_PASS", "pass")
                 .withEnv("TESTCONTAINERS_DB_URL", dbUrl)
-                .withCommand("./wait-for-it.sh --timeout=10 mysql:3306 -- java -jar aqa-shop.jar")
+                .withCommand("./wait-for-it.sh --timeout=30 mysql:3306 -- java -jar aqa-shop.jar")
                 .withNetwork(database.getNetwork())
                 .withExposedPorts(8080)
                 .start();
