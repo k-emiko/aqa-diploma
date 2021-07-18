@@ -367,11 +367,14 @@ public class FrontEndTest {
                 .start();
 
         dbUrl = database.getJdbcUrl();
+        System.out.println("DEBUG: " + dbUrl);
         paymentSim
                 .withNetwork(database.getNetwork())
                 .withNetworkAliases("gate-simulator")
                 .withExposedPorts(9999)
                 .start();
+
+        System.out.println("DEBUG: " + paymentSim.getHost() + ":" + paymentSim.getMappedPort(9999));
         app
                 .withEnv("TESTCONTAINERS_DB_USER", "app")
                 .withEnv("TESTCONTAINERS_DB_PASS", "pass")
@@ -381,6 +384,7 @@ public class FrontEndTest {
                 .withExposedPorts(8080)
                 .start();
         appUrl = app.getHost() + ":" + app.getMappedPort(8080);
+        System.out.println("DEBUG: " + appUrl);
     }
 
 }
