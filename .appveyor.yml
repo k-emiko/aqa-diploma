@@ -10,5 +10,5 @@ install:
   #- java -jar ./artifacts/app-card-delivery.jar &
 
 build_script:
-  - ./gradlew test -Dselenide.headless=true & # запускаем тест, флаг --info позволяет выводить больше информации
+  - ./gradlew test -Dselenide.headless=true # запускаем тест, флаг --info позволяет выводить больше информации
   - docker ps
