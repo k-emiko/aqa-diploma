@@ -16,27 +16,28 @@ import java.nio.file.Paths;
 
 import static com.codeborne.selenide.Selenide.open;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class FrontEndTest {
-    private static GeneralPageElements mainPage;
-    private static CardInfoForm cardInfo;
+    private GeneralPageElements mainPage;
+    private CardInfoForm cardInfo;
 
-    private static String appUrl;
-    private static String dbUrl;
-    private static Network network = Network.newNetwork();
+    private String appUrl;
+    private String dbUrl;
+    private Network network = Network.newNetwork();
 
     @Rule
-    public static MySQLContainer database = new MySQLContainer("mysql:8.0.25");
+    public MySQLContainer database = new MySQLContainer("mysql:8.0.25");
     @Rule
-    public static GenericContainer app =
+    public GenericContainer app =
             new GenericContainer(new ImageFromDockerfile("app-mysql")
                     .withDockerfile(Paths.get("artifacts/app-mysql/Dockerfile")));
     @Rule
-    public static GenericContainer paymentSim =
+    public GenericContainer paymentSim =
             new GenericContainer(new ImageFromDockerfile("payment-simulator")
                     .withDockerfile(Paths.get("artifacts/gate-simulator/Dockerfile")));
 
     @BeforeAll
-    static void headless() {
+    void headless() {
         Configuration.headless = true;
         setUpHelper();
     }
@@ -49,11 +50,11 @@ public class FrontEndTest {
     }
 
     @DisplayName("Date")
-    @Nested
-    public static class DateFields {
+    @Nested @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    public class DateFields {
 
         @BeforeAll
-        static void headless() {
+        void headless() {
             Configuration.headless = true;
             setUpHelper();
         }
@@ -125,11 +126,11 @@ public class FrontEndTest {
     }
 
     @DisplayName("Month Field")
-    @Nested
-    public static class MonthField {
+    @Nested @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    public class MonthField {
 
         @BeforeAll
-        static void headless() {
+        void headless() {
             Configuration.headless = true;
             setUpHelper();
         }
@@ -175,11 +176,11 @@ public class FrontEndTest {
     }
 
     @DisplayName("Year Field")
-    @Nested
-    public static class YearField {
+    @Nested @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    public class YearField {
 
         @BeforeAll
-        static void headless() {
+        void headless() {
             Configuration.headless = true;
             setUpHelper();
         }
@@ -219,11 +220,11 @@ public class FrontEndTest {
     }
 
     @DisplayName("Card Number Field")
-    @Nested
-    public static class CardNumberField {
+    @Nested @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    public class CardNumberField {
 
         @BeforeAll
-        static void headless() {
+        void headless() {
             Configuration.headless = true;
             setUpHelper();
         }
@@ -255,11 +256,11 @@ public class FrontEndTest {
     }
 
     @DisplayName("Name Field")
-    @Nested
-    public static class NameField {
+    @Nested @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    public class NameField {
 
         @BeforeAll
-        static void headless() {
+        void headless() {
             Configuration.headless = true;
             setUpHelper();
         }
@@ -297,11 +298,11 @@ public class FrontEndTest {
     }
 
     @DisplayName("CVC Field")
-    @Nested
-    public static class CvcField {
+    @Nested @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    public class CvcField {
 
         @BeforeAll
-        static void headless() {
+        void headless() {
             Configuration.headless = true;
             setUpHelper();
         }
@@ -340,6 +341,7 @@ public class FrontEndTest {
     }
 
     @Test
+    @DisplayName("Clear warnings on corrected input")
     public void clearWarningsTest() {
         cardInfo
                 .inputNumber(true)
@@ -354,7 +356,7 @@ public class FrontEndTest {
         CardInfoForm.assertNoErrors();
     }
 
-    public static void setUpHelper() {
+    public void setUpHelper() {
         database
                 .withDatabaseName("app")
                 .withUsername("app")
