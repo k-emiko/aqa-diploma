@@ -1,4 +1,4 @@
-package test;
+package helper;
 
 import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;

@@ -1,4 +1,4 @@
-package test;
+package helper;
 
 import lombok.val;
 import org.apache.commons.dbutils.QueryRunner;
@@ -9,7 +9,7 @@ import java.sql.SQLException;
 
 public class DBHelper {
 
-    static long countLinesInDB(String column, String table, String dbUrl) throws SQLException {
+    public static long countLinesInDB(String column, String table, String dbUrl) throws SQLException {
         QueryRunner runner = new QueryRunner();
         long result;
         try (
@@ -22,7 +22,7 @@ public class DBHelper {
         return result;
     }
 
-    static String seePaymentStatus(String dbUrl) throws SQLException {
+    public static String seePaymentStatus(String dbUrl) throws SQLException {
         QueryRunner runner = new QueryRunner();
         String result;
         try (
@@ -40,7 +40,7 @@ public class DBHelper {
         return result;
     }
 
-    static String seeCreditStatus(String dbUrl) throws SQLException {
+    public static String seeCreditStatus(String dbUrl) throws SQLException {
         QueryRunner runner = new QueryRunner();
         String result;
         try (

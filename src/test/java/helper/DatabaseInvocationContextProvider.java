@@ -1,15 +1,6 @@
-package test;
+package helper;
 
-import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
-
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.Extension;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolver;
-import org.junit.jupiter.api.extension.TestTemplateInvocationContext;
-import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
+import org.junit.jupiter.api.extension.*;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.Network;
@@ -23,7 +14,7 @@ import java.util.stream.Stream;
 import static java.util.Arrays.asList;
 
 //source: https://dzone.com/articles/integration-test-with-multiple-databases-1
-public class DatabaseInvocationContextProvider implements TestTemplateInvocationContextProvider{
+public class DatabaseInvocationContextProvider implements TestTemplateInvocationContextProvider {
 
     private final Map<String, JdbcDatabaseContainer> containers;
     public static Network network = Network.newNetwork();
@@ -70,7 +61,7 @@ public class DatabaseInvocationContextProvider implements TestTemplateInvocation
                 final JdbcDatabaseContainer databaseContainer = containers.get(database);
                 return asList(
                         (BeforeEachCallback) context -> databaseContainer.start(),
-                        (AfterAllCallback)   context -> databaseContainer.stop(),
+                        (AfterAllCallback) context -> databaseContainer.stop(),
                         new ParameterResolver() {
 
                             @Override

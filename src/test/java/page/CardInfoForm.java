@@ -7,7 +7,8 @@ import java.util.Calendar;
 
 import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Condition.visible;
-import static com.codeborne.selenide.Selenide.*;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.$x;
 
 public class CardInfoForm {
     SelenideElement cardNumberField = $(".input__control[placeholder='0000 0000 0000 0000']");
@@ -48,6 +49,10 @@ public class CardInfoForm {
 
     public static void assertFieldEmptyError() {
         fieldError.shouldHave(text("Поле обязательно для заполнения"));
+    }
+
+    public static void assertNoErrors() {
+        fieldError.shouldNotBe(visible);
     }
 
     public static GeneralPageElements inputValidInfo(boolean approved, CardInfoForm cardInfo) {

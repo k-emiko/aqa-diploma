@@ -35,6 +35,19 @@ public class FrontEndTest {
             new GenericContainer(new ImageFromDockerfile("payment-simulator")
                     .withDockerfile(Paths.get("artifacts/gate-simulator/Dockerfile")));
 
+    @BeforeAll
+    static void headless() {
+        Configuration.headless = true;
+        setUpHelper();
+    }
+
+    @BeforeEach
+    public void setUp() {
+        open("http://" + appUrl);
+        mainPage = new GeneralPageElements();
+        cardInfo = mainPage.buyTour();
+    }
+
     @DisplayName("Date")
     @Nested
     public static class DateFields {
@@ -324,6 +337,21 @@ public class FrontEndTest {
             mainPage.assertSuccess();
         }
 
+    }
+
+    @Test
+    public void clearWarningsTest() {
+        cardInfo
+                .inputNumber(true)
+                .inputNextMonth()
+                .inputNextYear()
+                .inputValidCvc()
+                .clickContinue();
+        CardInfoForm.assertFieldEmptyError();
+        cardInfo.inputValidName("en")
+                .clickContinue();
+        mainPage.assertSuccess();
+        CardInfoForm.assertNoErrors();
     }
 
     public static void setUpHelper() {

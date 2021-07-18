@@ -1,6 +1,9 @@
 package test;
 
 import com.codeborne.selenide.Configuration;
+import helper.ContainerHelper;
+import helper.DBHelper;
+import helper.DatabaseInvocationContextProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.TestTemplate;
@@ -20,12 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TourPurchaseTest {
     private static GeneralPageElements mainPage;
     private static CardInfoForm cardInfo;
-    private static String appUrl;
     private static String dbUrl;
 
-    private static String paymentTable = "payment_entity";
-    private static String creditTable = "credit_request_entity";
-    private static String orderTable = "order_entity";
+    private static final String paymentTable = "payment_entity";
+    private static final String creditTable = "credit_request_entity";
+    private static final String orderTable = "order_entity";
     private static final String approved = "APPROVED";
     private static final String declined = "DECLINED";
 
@@ -36,19 +38,16 @@ public class TourPurchaseTest {
     private long actualPaymentCount;
     private long actualDebitCount;
 
-    //todo field warnings do not clear after input has been corrected
-
     @BeforeAll
     static void headless() {
         Configuration.headless = true;
     }
 
     public void setUp(JdbcDatabaseContainer database) {
-        appUrl = ContainerHelper.setUp(database);
+        String appUrl = ContainerHelper.setUp(database);
         dbUrl = ContainerHelper.getDbUrl();
         open("http://" + appUrl);
         mainPage = new GeneralPageElements();
-
     }
 
     @TestTemplate

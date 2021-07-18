@@ -10,4 +10,4 @@
 ### Порядок запуска тестов
 
 1. Перейти в папку [корневую папку проекта](https://github.com/k-emiko/aqa-diploma/tree/master/) и выполнить автотесты командой `./gradlew build`
-1. Выполнить в терминале команду `./gradlew allureReport && ./gradlew allureServe` для генерации отчета после прохождения тестов.
+1. Выполнить в терминале команду `./gradlew allureReport && ./gradlew allureServe` ИЛИ открыть файл `build/reports/tests/test/index.html` для просмотра отчета по результатам тестирования
