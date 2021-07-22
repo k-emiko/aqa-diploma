@@ -3,6 +3,8 @@ package helper;
 import org.junit.Rule;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.JdbcDatabaseContainer;
+import org.testcontainers.containers.output.OutputFrame;
+import org.testcontainers.containers.output.ToStringConsumer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.nio.file.Paths;
@@ -46,6 +48,7 @@ public class ContainerHelper {
 
     public static String containerSelector(JdbcDatabaseContainer database) {
         String appUrl = null;
+        ToStringConsumer toStringConsumer = new ToStringConsumer();
         if (dbUrl.contains("mysql")) {
             appContMYSQL
                     .withEnv("TESTCONTAINERS_DB_URL", dbUrl)
@@ -56,6 +59,7 @@ public class ContainerHelper {
                     .withNetwork(database.getNetwork())
                     .withNetworkAliases("app")
                     .start();
+            appContMYSQL.followOutput(toStringConsumer, OutputFrame.OutputType.STDOUT);
             appUrl = appContMYSQL.getHost() + ":" + appContMYSQL.getMappedPort(8080);
         } else if (dbUrl.contains("postgresql")) {
             appContPSQL
@@ -68,8 +72,12 @@ public class ContainerHelper {
                     .withNetworkAliases("app")
                     .start();
             appUrl = appContPSQL.getHost() + ":" + appContPSQL.getMappedPort(8080);
+            appContPSQL.followOutput(toStringConsumer, OutputFrame.OutputType.STDOUT);
         }
+
+        String utf8String = toStringConsumer.toUtf8String();
         System.out.println(appUrl);
+        System.out.println(utf8String);
         return appUrl;
     }
 
