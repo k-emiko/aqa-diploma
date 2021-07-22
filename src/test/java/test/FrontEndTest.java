@@ -8,6 +8,8 @@ import org.junit.jupiter.params.provider.CsvFileSource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.output.OutputFrame;
+import org.testcontainers.containers.output.ToStringConsumer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import page.CardInfoForm;
 import page.GeneralPageElements;
@@ -367,14 +369,14 @@ public class FrontEndTest {
                 .start();
 
         dbUrl = database.getJdbcUrl();
-        System.out.println("DEBUG: " + dbUrl);
+        System.out.println("DEBUG DB: " + dbUrl);
         paymentSim
                 .withNetwork(database.getNetwork())
                 .withNetworkAliases("gate-simulator")
                 .withExposedPorts(9999)
                 .start();
 
-        System.out.println("DEBUG: " + paymentSim.getHost() + ":" + paymentSim.getMappedPort(9999));
+        System.out.println("DEBUG PG: " + paymentSim.getHost() + ":" + paymentSim.getMappedPort(9999));
         app
                 .withEnv("TESTCONTAINERS_DB_USER", "app")
                 .withEnv("TESTCONTAINERS_DB_PASS", "pass")
@@ -383,8 +385,13 @@ public class FrontEndTest {
                 .withNetwork(database.getNetwork())
                 .withExposedPorts(8080)
                 .start();
+        ToStringConsumer toStringConsumer = new ToStringConsumer();
+        app.followOutput(toStringConsumer, OutputFrame.OutputType.STDOUT);
+
+        String utf8String = toStringConsumer.toUtf8String();
+        System.out.println("DEBUG CL: " + utf8String);
         appUrl = app.getHost() + ":" + app.getMappedPort(8080);
-        System.out.println("DEBUG: " + appUrl);
+        System.out.println("DEBUG APP: " + appUrl);
     }
 
 }
