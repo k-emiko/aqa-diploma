@@ -12,8 +12,6 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 import page.CardInfoForm;
 import page.GeneralPageElements;
 
-import java.sql.SQLException;
-
 import static com.codeborne.selenide.Selenide.open;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,7 +50,7 @@ public class TourPurchaseTest {
 
     @TestTemplate
     @DisplayName("Debit Approved")
-    void debitApproved(JdbcDatabaseContainer database) throws SQLException {
+    void debitApproved(JdbcDatabaseContainer database) {
         setUp(database);
         //get numbers of entries in relevant tables
         initialPaymentCount = DBHelper.countLinesInDB("status", paymentTable, dbUrl);
@@ -73,7 +71,7 @@ public class TourPurchaseTest {
 
     @TestTemplate
     @DisplayName("Debit Declined")
-    public void debitDeclined(JdbcDatabaseContainer database) throws SQLException {
+    public void debitDeclined(JdbcDatabaseContainer database) {
         setUp(database);
         initialPaymentCount = DBHelper.countLinesInDB("status", paymentTable, dbUrl);
         initialDebitCount = DBHelper.countLinesInDB("payment_id", orderTable, dbUrl);
@@ -92,7 +90,7 @@ public class TourPurchaseTest {
 
     @TestTemplate
     @DisplayName("Credit Approved")
-    public void creditApproved(JdbcDatabaseContainer database) throws SQLException {
+    public void creditApproved(JdbcDatabaseContainer database) {
         setUp(database);
         initialCreditCount = DBHelper.countLinesInDB("id", creditTable, dbUrl);
 
@@ -108,7 +106,7 @@ public class TourPurchaseTest {
 
     @TestTemplate
     @DisplayName("Credit Declined")
-    public void creditDeclined(JdbcDatabaseContainer database) throws SQLException {
+    public void creditDeclined(JdbcDatabaseContainer database) {
         setUp(database);
         initialCreditCount = DBHelper.countLinesInDB("id", creditTable, dbUrl);
 

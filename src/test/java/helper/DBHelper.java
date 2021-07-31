@@ -9,9 +9,9 @@ import java.sql.SQLException;
 
 public class DBHelper {
 
-    public static long countLinesInDB(String column, String table, String dbUrl) throws SQLException {
+    public static long countLinesInDB(String column, String table, String dbUrl) {
         QueryRunner runner = new QueryRunner();
-        long result;
+        long result = 0;
         try (
                 val conn = DriverManager.getConnection(
                         dbUrl, "app", "pass")
@@ -19,12 +19,15 @@ public class DBHelper {
             //result = runner.query(conn, "SELECT COUNT(?) FROM ?;", new ScalarHandler<>(), column, table);//this line cases SQL syntax error
             result = runner.query(conn, "SELECT COUNT(" + column + ") FROM " + table + ";", new ScalarHandler<>());//working line
         }//todo figure out why the ? thing doesn't work
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
         return result;
     }
 
-    public static String seePaymentStatus(String dbUrl) throws SQLException {
+    public static String seePaymentStatus(String dbUrl) {
         QueryRunner runner = new QueryRunner();
-        String result;
+        String result = null;
         try (
                 val conn = DriverManager.getConnection(
                         dbUrl, "app", "pass")
@@ -36,13 +39,15 @@ public class DBHelper {
                             "where created=" +
                             "(select max(created) from order_entity));",
                     new ScalarHandler<>());
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return result;
     }
 
-    public static String seeCreditStatus(String dbUrl) throws SQLException {
+    public static String seeCreditStatus(String dbUrl) {
         QueryRunner runner = new QueryRunner();
-        String result;
+        String result = null;
         try (
                 val conn = DriverManager.getConnection(
                         dbUrl, "app", "pass")
@@ -52,6 +57,8 @@ public class DBHelper {
                             "where created=" +
                             "(select max(created) from credit_request_entity);",
                     new ScalarHandler<>());
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return result;
     }
